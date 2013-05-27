@@ -75,7 +75,7 @@ def get_params():
 
 
 def print_subscription(subscription, coding, head=""):
-    title = subscription['title'].encode(coding)
+    title = subscription.get('title', '').encode(coding)
     url = subscription['id'].encode(coding)[5:]
     print("{0}{1} ({2})".format(head, title, url))
 
@@ -84,7 +84,7 @@ def print_topics(topic, coding, head=""):
     date = {'updated': topic['updated'],
             'published': topic['published']}
     url = topic['alternate'][0]['href'].encode(coding)
-    title = topic['title'].encode(coding)
+    title = topic.get('title', '').encode(coding)
     message = '{head}{title} ({url})'.format(
         head=head, date=date, title=title, url=url)
     print(message)
