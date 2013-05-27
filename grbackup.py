@@ -2,6 +2,8 @@
 # coding=utf-8
 import sys
 import time
+import imp
+import os
 import logging
 from optparse import OptionParser, OptionGroup
 from greader import GReader
@@ -27,6 +29,36 @@ def loading(text, callback_exit, callback_count=None):
             i += 1
 
     print '\b\b Done!'
+
+
+def get_plugins(plugins_folder="grb_plugins"):
+    """ Load plugins from folder
+    and return dictionary {'plugin_type': 'module_instance'}
+    args:
+        plugins_folder - folder with plugins
+    """
+    plugins = {}
+    for plugin_module in os.listdir(plugins_folder):
+        try:
+            name = os.path.splitext(plugin_module)[0]
+            _m = imp.find_module(name, [plugins_folder])
+            m = imp.load_module(name, *_m)
+            if hasattr(m, 'plugin_type'):
+                plugins[m.plugin_type] = m
+        except ImportError as err:
+            logging.warn("Exception during loading module '%s': %r", name, err)
+    return plugins
+
+
+def get_active_plugin(output):
+    plugins = get_plugins()
+    for plugin_type in plugins:
+        if plugin_type and options.output.split(":")[0] == plugin_type:
+            return plugins[plugin_type]
+            break
+    else:
+        logging.error("Can't find plugin for output '%s'" % options.output)
+        exit(1)
 
 
 def get_params():
@@ -63,7 +95,8 @@ def get_params():
 
     # Other Options
     other_group = OptionGroup(parser, "Other Options")
-    other_group.add_option("-o", "--output", dest="output", help="output file")
+    other_group.add_option("-o", "--output", dest="output",
+                           default="json:backup.json", help="output path")
     other_group.add_option("-c", "--coding", dest="coding", default="utf8",
                            help="output coding [default: %default]")
     other_group.add_option("-v", "--verbose", action="store_true",
@@ -83,7 +116,9 @@ def print_subscription(subscription, coding, head=""):
 def print_topics(topic, coding, head=""):
     date = {'updated': topic['updated'],
             'published': topic['published']}
-    url = topic['alternate'][0]['href'].encode(coding)
+    url = ''
+    if topic.get('alternate'):
+        url = topic['alternate'][0]['href'].encode(coding)
     title = topic.get('title', '').encode(coding)
     message = '{head}{title} ({url})'.format(
         head=head, date=date, title=title, url=url)
@@ -92,6 +127,10 @@ def print_topics(topic, coding, head=""):
 
 if __name__ == '__main__':
     options, args = get_params()
+    if options.cmd_list:
+        options.output = "simple://"
+    plugin_output = get_active_plugin(options.output)
+
     while not options.email:
         options.email = raw_input("email: ")
     while not options.pwd:
@@ -100,24 +139,24 @@ if __name__ == '__main__':
     g = GReader(options.email, options.pwd)
     # TODO: check_options()
 
-    if options.scope_subs:
-        for index, subscription in enumerate(g.subscriptions, 1):
-            if options.cmd_list:
-                print_subscription(subscription,
-                                   options.coding,
-                                   "{0} ".format(index))
+    with plugin_output.writer(options) as plugin_writer:
+        if options.scope_subs:
+            for subscription in g.subscriptions:
+                plugin_writer.put_subscription(subscription)
 
-    elif options.scope_topics:
-        subscription_url = args[0].encode(options.coding)
-        if options.verbose:
-            print("\n\n\nfeed: {url}\n".format(url=subscription_url))
-        if options.cmd_list:
-            for index, post in enumerate(g.posts(subscription_url), 1):
-                print_topics(post, options.coding, "{0} ".format(index))
+        elif options.scope_topics:
+            subscription_url = args[0].encode(options.coding)
+            if options.verbose:
+                print("\n\n\nfeed: {url}\n".format(url=subscription_url))
+            for post in g.posts(subscription_url):
+                plugin_writer.put_topic(subscription_url, post)
 
-    elif options.scope_all:
-        for subscription in g.subscriptions:
-            subscription_url = subscription['id'].encode(options.coding)[5:]
-            print("\n\n\nfeed: {url}\n".format(url=subscription_url))
-            for index, post in enumerate(g.posts(subscription_url), 1):
-                print_topics(post, options.coding, "{0} ".format(index))
+        elif options.scope_all:
+            for subscription in g.subscriptions:
+                subscription_url = subscription['id'].encode(
+                    options.coding)[5:]
+                if options.cmd_list:
+                    print("\n\n\nfeed: {url}\n".format(url=subscription_url))
+                    plugin_writer.put_subscription(subscription)
+                for post in g.posts(subscription_url):
+                    plugin_writer.put_topic(subscription, post)
