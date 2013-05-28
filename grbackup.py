@@ -5,6 +5,7 @@ import time
 import imp
 import os
 import logging
+import getpass
 from optparse import OptionParser, OptionGroup
 from greader import GReader
 
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     while not options.email:
         options.email = raw_input("email: ")
     while not options.pwd:
-        options.pwd = raw_input("password: ")
+        options.pwd = getpass.getpass("password: ")
 
     g = GReader(options.email, options.pwd)
     # TODO: check_options()
