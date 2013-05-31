@@ -39,6 +39,7 @@ def get_plugins(plugins_folder="grb_plugins"):
         plugins_folder - folder with plugins
     """
     plugins = {}
+    # TODO: rewrite with package.subpackage path
     for plugin_module in os.listdir(plugins_folder):
         try:
             name = os.path.splitext(plugin_module)[0]
@@ -51,8 +52,7 @@ def get_plugins(plugins_folder="grb_plugins"):
     return plugins
 
 
-def get_active_plugin(output):
-    plugins = get_plugins()
+def get_active_plugin(output, plugins):
     for plugin_type in plugins:
         if plugin_type and options.output.split(":")[0] == plugin_type:
             return plugins[plugin_type]
@@ -71,7 +71,7 @@ def check_params(options):
         return "Option '--output' is ignored if '--list' specified"
 
 
-def get_params():
+def get_params(plugins):
     usage = "usage: grbackup [options] [args]"
     parser = OptionParser(usage=usage)
 
@@ -102,6 +102,10 @@ def get_params():
                            default=False, action="store_true",
                            help="processing topics only")
     parser.add_option_group(scope_group)
+
+    # Plugins Options
+    for plugin in plugins:
+        plugins[plugin].add_option_group(parser)
 
     # Other Options
     other_group = OptionGroup(parser, "Other Options")
@@ -135,10 +139,10 @@ def print_topics(topic, coding, head=""):
     print(message)
 
 
-def main(options, args):
+def main(options, args, plugins):
     if options.cmd_list:
         options.output = "simple://"
-    plugin_output = get_active_plugin(options.output)
+    plugin_output = get_active_plugin(options.output, plugins)
 
     while not options.email:
         options.email = raw_input("email: ")
@@ -171,10 +175,11 @@ def main(options, args):
 
 
 if __name__ == '__main__':
-    options, args = get_params()
+    plugins = get_plugins()
+    options, args = get_params(plugins)
     check_result = check_params(options)
     if check_result:
         print(check_result)
         sys.exit(1)
     else:
-        main(options, args)
+        main(options, args, plugins)
