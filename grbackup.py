@@ -62,6 +62,15 @@ def get_active_plugin(output):
         exit(1)
 
 
+def check_params(options):
+    if (options.cmd_list and options.cmd_backup) or \
+            not (options.cmd_list or options.cmd_backup):
+        return "Please, specify --backup OR --list"
+
+    if options.cmd_list and options.output:
+        return "Option '--output' is ignored if '--list' specified"
+
+
 def get_params():
     usage = "usage: grbackup [options] [args]"
     parser = OptionParser(usage=usage)
@@ -85,13 +94,13 @@ def get_params():
     # Scope Options
     scope_group = OptionGroup(parser, "Scope Options")
     scope_group.add_option("-a", "--all", dest="scope_all", default=False,
-                           action="store_true", help="list/backup all items")
+                           action="store_true", help="processing all items")
     scope_group.add_option("-s", "--subscriptions", dest="scope_subs",
                            action="store_true", default=False,
-                           help="list/backup subscriptions only")
+                           help="processing subscriptions only")
     scope_group.add_option("-t", "--topics", dest="scope_topics",
                            default=False, action="store_true",
-                           help="list/backup topics only")
+                           help="processing topics only")
     parser.add_option_group(scope_group)
 
     # Other Options
@@ -126,8 +135,7 @@ def print_topics(topic, coding, head=""):
     print(message)
 
 
-if __name__ == '__main__':
-    options, args = get_params()
+def main(options, args):
     if options.cmd_list:
         options.output = "simple://"
     plugin_output = get_active_plugin(options.output)
@@ -138,7 +146,6 @@ if __name__ == '__main__':
         options.pwd = getpass.getpass("password: ")
 
     g = GReader(options.email, options.pwd)
-    # TODO: check_options()
 
     with plugin_output.writer(options) as plugin_writer:
         if options.scope_subs:
@@ -161,3 +168,13 @@ if __name__ == '__main__':
                     plugin_writer.put_subscription(subscription)
                 for post in g.posts(subscription_url):
                     plugin_writer.put_topic(subscription, post)
+
+
+if __name__ == '__main__':
+    options, args = get_params()
+    check_result = check_params(options)
+    if check_result:
+        print(check_result)
+        sys.exit(1)
+    else:
+        main(options, args)
