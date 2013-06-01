@@ -116,6 +116,7 @@ def get_params(plugins):
     other_group.add_option("-v", "--verbose", action="store_true",
                            dest="verbose", default=False,
                            help="verbose output")
+    other_group.add_option("-h", "--help", action="help")
     parser.add_option_group(other_group)
 
     return parser.parse_args()
