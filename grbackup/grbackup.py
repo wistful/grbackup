@@ -7,11 +7,11 @@ import os
 import logging
 import getpass
 from optparse import OptionParser, OptionGroup
-from greader import GReader
+from .greader import GReader
 
 
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.ERROR)
+root_logger.setLevel(logging.WARNING)
 
 
 def loading(text, callback_exit, callback_count=None):
@@ -32,14 +32,14 @@ def loading(text, callback_exit, callback_count=None):
     print '\b\b Done!'
 
 
-def get_plugins(plugins_folder="grb_plugins"):
+def get_plugins():
     """ Load plugins from folder
     and return dictionary {'plugin_type': 'module_instance'}
-    args:
-        plugins_folder - folder with plugins
     """
+    plugins_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "grb_plugins")
     plugins = {}
-    # TODO: rewrite with package.subpackage path
+
     for plugin_module in os.listdir(plugins_folder):
         try:
             name = os.path.splitext(plugin_module)[0]
@@ -48,17 +48,18 @@ def get_plugins(plugins_folder="grb_plugins"):
             if hasattr(m, 'plugin_type'):
                 plugins[m.plugin_type] = m
         except ImportError as err:
-            logging.warn("Exception during loading module '%s': %r", name, err)
+            message = "Exception during loading module '%s': %r" % (name, err)
+            logging.warn(message)
     return plugins
 
 
 def get_active_plugin(output, plugins):
     for plugin_type in plugins:
-        if plugin_type and options.output.split(":")[0] == plugin_type:
+        if plugin_type and output.split(":")[0] == plugin_type:
             return plugins[plugin_type]
             break
     else:
-        logging.error("Can't find plugin for output '%s'" % options.output)
+        logging.error("Can't find plugin for output '%s'" % output)
         exit(1)
 
 
@@ -68,7 +69,7 @@ def check_params(options):
         return "Please, specify --backup OR --list"
 
     if options.cmd_list and options.output:
-        return "Option '--output' is ignored if '--list' specified"
+        print("Option '--output' is ignored if '--list' specified")
 
 
 def get_params(plugins):
@@ -175,7 +176,7 @@ def main(options, args, plugins):
                     plugin_writer.put_topic(subscription, post)
 
 
-if __name__ == '__main__':
+def entry_main():
     plugins = get_plugins()
     options, args = get_params(plugins)
     check_result = check_params(options)
@@ -184,3 +185,7 @@ if __name__ == '__main__':
         sys.exit(1)
     else:
         main(options, args, plugins)
+
+
+if __name__ == '__main__':
+    entry_main()
