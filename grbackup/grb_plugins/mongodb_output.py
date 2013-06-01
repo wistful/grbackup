@@ -50,25 +50,24 @@ class WriteMongoDB(object):
     def __init__(self, uri, collection_subsr, collection_topics,
                  w, j, db=None):
         self.uri = uri
-        self._subscriptions = collection_subsr
-        self._topics = collection_topics
         uri_info = pymongo.uri_parser.parse_uri(uri)
         self.db = db or uri_info['database']
         Client = pymongo.MongoClient
         if uri_info['options'].get('replicaset'):
             Client = pymongo.MongoReplicaSetClient
         self.conn = Client(uri, w=w, j=j)
-        self.sids = []  # save subscriptions ids to avoid dublication
+        self.scol = self.conn[self.db][collection_subsr]
+        self.tcol = self.conn[self.db][collection_topics]
 
     def put_subscription(self, subscription):
-        if subscription['id'] not in self.sids:
-            self.conn[self.db][self._subscriptions].insert(subscription)
-            self.sids.append(subscription['id'])
+        if not self.scol.find_one({'id': subscription['id']}):
+            self.scol.insert(subscription)
 
     def put_topic(self, subscription, topic):
         if not isinstance(subscription, str):
             self.put_subscription(subscription)
-        self.conn[self.db][self._topics].insert(topic)
+        if not self.tcol.find_one({'id': topic['id']}):
+            self.tcol.insert(topic)
 
 
 class writer(object):
