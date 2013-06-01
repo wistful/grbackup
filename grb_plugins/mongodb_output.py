@@ -10,19 +10,19 @@ plugin_type = "mongodb"
 def add_option_group(parser):
     # MongoDB Options
     mongodb_group = OptionGroup(parser, "MongoDB Options")
-    mongodb_group.add_option("--mongodb-database",
-                             dest="mongodb_database",
+    mongodb_group.add_option("--mongodb-db",
+                             dest="mongodb_db",
                              type="str",
                              default="greader",
                              help="the name of the database"
                              "[default: %default]")
-    mongodb_group.add_option("--mongodb-subscriptions",
+    mongodb_group.add_option("--mongodb-scol",
                              dest="mongodb_subscriptions",
                              default='subscriptions',
                              type="str",
                              help="collection name for subscriptions"
                              "[default: %default]")
-    mongodb_group.add_option("--mongodb-topics",
+    mongodb_group.add_option("--mongodb-tcol",
                              dest="mongodb_topics",
                              default='topics',
                              type="str",
@@ -58,7 +58,7 @@ class WriteMongoDB(object):
         if uri_info['options'].get('replicaset'):
             Client = pymongo.MongoReplicaSetClient
         self.conn = Client(uri, w=w, j=j)
-        self.sids = []  # subscriptions ids to avoid dublication
+        self.sids = []  # save subscriptions ids to avoid dublication
 
     def put_subscription(self, subscription):
         if subscription['id'] not in self.sids:
@@ -77,7 +77,7 @@ class writer(object):
         self._output = opt.output
         self.subsr = opt.mongodb_subscriptions
         self.topics = opt.mongodb_topics
-        self.db = opt.mongodb_database
+        self.db = opt.mongodb_db
         self.w = opt.mongodb_w
         self.j = opt.mongodb_j
 
