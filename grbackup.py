@@ -73,7 +73,7 @@ def check_params(options):
 
 def get_params(plugins):
     usage = "usage: grbackup [options] [args]"
-    parser = OptionParser(usage=usage)
+    parser = OptionParser(usage=usage, conflict_handler="resolve")
 
     # Auth Options
     auth_group = OptionGroup(parser, "Auth Options")
