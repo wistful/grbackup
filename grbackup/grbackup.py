@@ -105,8 +105,9 @@ def get_params(plugins):
     parser.add_option_group(scope_group)
 
     # Plugins Options
-    for plugin in plugins:
-        plugins[plugin].add_option_group(parser)
+    for module in plugins.values():
+        if hasattr(module, 'add_option_group'):
+            module.add_option_group(parser)
 
     # Other Options
     other_group = OptionGroup(parser, "Other Options")
