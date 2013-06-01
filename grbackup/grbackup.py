@@ -112,6 +112,10 @@ def get_params(plugins):
     other_group = OptionGroup(parser, "Other Options")
     other_group.add_option("-o", "--output", dest="output",
                            default="json:backup.json", help="output path")
+    other_group.add_option("-n", "--count", dest="count",
+                           default=200,
+                           help="the number of topics "
+                           "that can be read at once [default: %default]")
     other_group.add_option("-c", "--coding", dest="coding", default="utf8",
                            help="output coding [default: %default]")
     other_group.add_option("-v", "--verbose", action="store_true",
@@ -162,7 +166,7 @@ def main(options, args, plugins):
             subscription_url = args[0].encode(options.coding)
             if options.verbose:
                 print("\n\n\nfeed: {url}\n".format(url=subscription_url))
-            for post in g.posts(subscription_url):
+            for post in g.posts(subscription_url, options.count):
                 plugin_writer.put_topic(subscription_url, post)
 
         elif options.scope_all:
@@ -172,7 +176,7 @@ def main(options, args, plugins):
                 if options.cmd_list:
                     print("\n\n\nfeed: {url}\n".format(url=subscription_url))
                     plugin_writer.put_subscription(subscription)
-                for post in g.posts(subscription_url):
+                for post in g.posts(subscription_url, options.count):
                     plugin_writer.put_topic(subscription, post)
 
 
