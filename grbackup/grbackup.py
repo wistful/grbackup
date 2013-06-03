@@ -102,6 +102,9 @@ def get_params(plugins):
     scope_group.add_option("-t", "--topics", dest="scope_topics",
                            default=False, action="store_true",
                            help="processing topics only")
+    scope_group.add_option("-x", "--starred", dest="scope_starred",
+                           default=False, action="store_true",
+                           help="processing starred topics only")
     parser.add_option_group(scope_group)
 
     # Plugins Options
@@ -170,7 +173,13 @@ def main(options, args, plugins):
             for post in g.posts(subscription_url, options.count):
                 plugin_writer.put_topic(subscription_url, post)
 
+        elif options.scope_starred:
+            for post in g.starred(options.count):
+                plugin_writer.put_topic('starred', post)
+
         elif options.scope_all:
+            for post in g.starred(options.count):
+                plugin_writer.put_topic('starred', post)
             for subscription in g.subscriptions:
                 subscription_url = subscription['id'].encode(
                     options.coding)[5:]
