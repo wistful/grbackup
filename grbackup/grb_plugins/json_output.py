@@ -5,6 +5,11 @@ import os
 
 
 plugin_type = "json"
+description = """save items into file
+output scheme:   json:/path/to/file.json
+output examples: json:/home/grbackup/grbackup.json
+                 json:/tmp/grbackup/grbackup.json
+"""
 
 
 def add_option_group(parser):
@@ -15,13 +20,25 @@ class WriteJSON(object):
 
     def __init__(self, fd):
         self.fd = fd
+        self.subscriptions = set()
 
     def put_subscription(self, subscription):
-        self.write({"type": "subscription", "value": subscription})
+        if subscription['id'] not in self.subscriptions:
+            self.subscriptions.add(subscription['id'])
+            self.write({"type": "subscription", "value": subscription})
 
-    def put_topic(self, subscription, topic):
+    def put_all(self, subscription, topic):
+        self.put_subscription(subscription)
+        subscription_url = subscription['id'][5:]
+        self.put_topic(subscription_url, topic)
+
+    def put_starred(self, topic):
+        self.write({"type": "starred",
+                    "value": topic})
+
+    def put_topic(self, subscription_url, topic):
         self.write({"type": "topic",
-                    "subscription": subscription,
+                    "subscription": subscription_url,
                     "value": topic})
 
     def write(self, json_obj):

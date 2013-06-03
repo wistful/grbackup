@@ -68,12 +68,48 @@ def check_params(options):
             not (options.cmd_list or options.cmd_backup):
         return "Please, specify --backup OR --list"
 
-    if options.cmd_list and options.output:
+    if options.cmd_list and not options.output.startswith("simple:"):
         print("Option '--output' is ignored if '--list' specified")
 
 
-def get_params(plugins):
+def make_usage(plugins):
     usage = "usage: grbackup [options] [args]"
+    usage += """
+
+Examples:
+
+   list subscriptions: grbackup -e email@gmail.com -p password -ls
+   list topics: grbackup -e email@gmail.com -p password -lt http://feed.com
+   list starred: grbackup -e email@gmail.com -p password -lx
+   list all items: grbackup -e email@gmail.com -p password -la
+
+   backup subscriptions: grbackup -e email@gmail.com -p password -bs -o json:/tmp/subscriptions.json
+   backup topics: grbackup -e email@gmail.com -p password -bt http://myfeed.com -o json:/tmp/myfeed.json
+   backup starred into MongoDB: grbackup -e email@gmail.com -p password -bx -o mongodb://localhost:27017
+   backup all items into Redis: grbackup -e email@gmail.com -p password -ba -o redis://localhost:6379/3
+
+"""
+    usage += "Available plugins:\n\n"
+
+    maxlen = max([len(plugin_name) for plugin_name in plugins]) + 2
+    lines = []
+    for name, m in plugins.items():
+        if name == "simple":
+            continue
+        formatted_str = '  {0:{alignment}{length}} {1}'
+        descr = getattr(m, 'description', '').split('\n')
+        for i, col2 in enumerate(descr):
+            col1 = name + ":" if i == 0 else ""
+            lines.append(formatted_str.format(col1, col2,
+                                              alignment='<',
+                                              length=maxlen))
+
+    usage += "\n".join(lines)
+    return usage
+
+
+def get_params(plugins):
+    usage = make_usage(plugins)
     parser = OptionParser(usage=usage, conflict_handler="resolve")
 
     # Auth Options
@@ -115,7 +151,7 @@ def get_params(plugins):
     # Other Options
     other_group = OptionGroup(parser, "Other Options")
     other_group.add_option("-o", "--output", dest="output",
-                           default="json:backup.json", help="output path")
+                           default="simple://", help="output uri")
     other_group.add_option("-n", "--count", dest="count",
                            default=200,
                            help="the number of topics "
@@ -175,19 +211,16 @@ def main(options, args, plugins):
 
         elif options.scope_starred:
             for post in g.starred(options.count):
-                plugin_writer.put_topic('starred', post)
+                plugin_writer.put_starred(post)
 
         elif options.scope_all:
             for post in g.starred(options.count):
-                plugin_writer.put_topic('starred', post)
+                plugin_writer.put_starred(post)
             for subscription in g.subscriptions:
                 subscription_url = subscription['id'].encode(
                     options.coding)[5:]
-                if options.cmd_list:
-                    print("\n\n\nfeed: {url}\n".format(url=subscription_url))
-                    plugin_writer.put_subscription(subscription)
                 for post in g.posts(subscription_url, options.count):
-                    plugin_writer.put_topic(subscription, post)
+                    plugin_writer.put_all(subscription, post)
 
 
 def entry_main():

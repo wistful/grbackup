@@ -35,23 +35,33 @@ class SimplePrint(object):
         self._count_subs = 0
         self._count_topics = defaultdict(int)
         self._subscription = None
+        self._starred = False
 
     def put_subscription(self, subscription):
-        self._count_subs += 1
-        title = subscription.get('title', '').encode(self.coding)
-        url = subscription['id'].encode(self.coding)[5:]
-        print("{0}: {1} ({2})".format(self._count_subs, title, url))
-
-    def put_topic(self, subscription, topic):
-        if subscription != self._subscription:
+        if self._subscription != subscription:
             self._subscription = subscription
-            self._count_topics = 0
-        self._count_topics += 1
+            title = subscription.get('title', '').encode(self.coding)
+            url = subscription['id'].encode(self.coding)[5:]
+            print("feed: {0} ({1})".format(title, url))
+
+    def put_all(self, subscription, topic):
+        self.put_subscription(subscription)
+        url = subscription['id'].encode(self.coding)[5:]
+        self.put_topic(url, topic)
+
+    def put_starred(self, topic):
+        if not self._starred:
+            self._starred = True
+            print("Starred:")
+        title = topic.get('title', '').encode(self.coding)
+        print(title)
+
+    def put_topic(self, subscription_url, topic):
         url = ''
         if topic.get('alternate'):
             url = topic['alternate'][0]['href'].encode(self.coding)
         title = topic.get('title', '').encode(self.coding)
-        message = '{0}: {1} ({2})'.format(self._count_topics, title, url)
+        message = '{0} ({1})'.format(title, url)
         print(message)
 
 
