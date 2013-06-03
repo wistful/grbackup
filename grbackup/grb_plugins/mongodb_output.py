@@ -5,6 +5,11 @@ import pymongo
 
 
 plugin_type = "mongodb"
+description = """save items into MongoDB
+output scheme:   mongodb://[username:password@]hostN[:portN]]][/[db][?opts]]
+output examples: mongodb://localhost:27017
+                 mongodb://user:pwd@localhost,localhost:27018/?replicaSet=grbackup
+"""
 
 
 def add_option_group(parser):
@@ -28,6 +33,12 @@ def add_option_group(parser):
                              type="str",
                              help="collection name for topics"
                              "[default: %default]")
+    mongodb_group.add_option("--mongodb-tstar",
+                             dest="mongodb_starred",
+                             default='starred',
+                             type="str",
+                             help="collection name for starred items"
+                             "[default: %default]")
     mongodb_group.add_option("--mongodb-w",
                              dest="mongodb_w",
                              default=1,
@@ -47,7 +58,8 @@ def add_option_group(parser):
 
 class WriteMongoDB(object):
 
-    def __init__(self, uri, collection_subsr, collection_topics,
+    def __init__(self, uri,
+                 collection_subsr, collection_topics, collection_starred,
                  w, j, db=None):
         self.uri = uri
         uri_info = pymongo.uri_parser.parse_uri(uri)
@@ -58,14 +70,22 @@ class WriteMongoDB(object):
         self.conn = Client(uri, w=w, j=j)
         self.scol = self.conn[self.db][collection_subsr]
         self.tcol = self.conn[self.db][collection_topics]
+        self.xcol = self.conn[self.db][collection_starred]
 
     def put_subscription(self, subscription):
         if not self.scol.find_one({'id': subscription['id']}):
             self.scol.insert(subscription)
 
-    def put_topic(self, subscription, topic):
-        if not isinstance(subscription, str):
-            self.put_subscription(subscription)
+    def put_all(self, subscription, topic):
+        self.put_subscription(subscription)
+        subscription_url = subscription['id'][5:]
+        self.put_topic(subscription_url, topic)
+
+    def put_starred(self, topic):
+        if not self.xcol.find_one({'id': topic['id']}):
+            self.xcol.insert(topic)
+
+    def put_topic(self, subscription_url, topic):
         if not self.tcol.find_one({'id': topic['id']}):
             self.tcol.insert(topic)
 
@@ -76,13 +96,14 @@ class writer(object):
         self._output = opt.output
         self.subsr = opt.mongodb_subscriptions
         self.topics = opt.mongodb_topics
+        self.starred = opt.mongodb_starred
         self.db = opt.mongodb_db
         self.w = opt.mongodb_w
         self.j = opt.mongodb_j
 
     def __enter__(self):
         return WriteMongoDB(self._output,
-                            self.subsr, self.topics,
+                            self.subsr, self.topics, self.starred,
                             self.w, self.j, db=self.db)
 
     def __exit__(self, *exc_info):
