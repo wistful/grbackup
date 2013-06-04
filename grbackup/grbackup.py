@@ -224,7 +224,8 @@ def main(options, args, plugins):
             else:
                 message = "plugin {0} doesn't support threading: "
                 message += "option -w will be ignored"
-                print(message.format(plugin_output.plugin_type))
+                if options.cmd_backup:
+                    print(message.format(plugin_output.plugin_type))
 
             pool = ThreadPool(num_workers)
             pool.add_task(map, lambda item: plugin_writer.put_starred(item),
