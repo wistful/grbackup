@@ -2,9 +2,11 @@
 # coding=utf-8
 import json
 import os
+import threading
 
 
 plugin_type = "json"
+support_threads = True
 description = """save items into file
 output scheme:   json:/path/to/file.json
 output examples: json:/home/grbackup/grbackup.json
@@ -21,6 +23,7 @@ class WriteJSON(object):
     def __init__(self, fd):
         self.fd = fd
         self.subscriptions = set()
+        self.lock = threading.Lock()
 
     def put_subscription(self, subscription):
         if subscription['id'] not in self.subscriptions:
@@ -42,14 +45,15 @@ class WriteJSON(object):
                     "value": topic})
 
     def write(self, json_obj):
-        if self.fd.tell() == 0:
-            self.fd.write("[")
-        else:
-            self.fd.seek(-1, os.SEEK_END)
-            self.fd.truncate()
-            self.fd.write(",\n")
-        self.fd.write(json.dumps(json_obj))
-        self.fd.write("]")
+        with self.lock:
+            if self.fd.tell() == 0:
+                self.fd.write("[")
+            else:
+                self.fd.seek(-1, os.SEEK_END)
+                self.fd.truncate()
+                self.fd.write(",\n")
+            self.fd.write(json.dumps(json_obj))
+            self.fd.write("]")
 
 
 class writer(object):

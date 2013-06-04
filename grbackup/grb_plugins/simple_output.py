@@ -4,6 +4,7 @@ from collections import defaultdict
 
 
 plugin_type = "simple"
+support_threads = False
 
 
 def add_option_group(parser):

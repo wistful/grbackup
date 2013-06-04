@@ -5,6 +5,7 @@ import redis
 
 
 plugin_type = "redis"
+support_threads = True
 description = """save items into Redis
 output scheme:   redis://username:password@host[:port]/dbindex
 output examples: redis://localhost:6379/3

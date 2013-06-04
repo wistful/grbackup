@@ -7,6 +7,10 @@ import os
 import logging
 import getpass
 from optparse import OptionParser, OptionGroup
+
+from threading import Thread
+from Queue import Queue
+
 from .greader import GReader
 
 
@@ -150,6 +154,9 @@ def get_params(plugins):
 
     # Other Options
     other_group = OptionGroup(parser, "Other Options")
+    other_group.add_option("-w", "--workers", dest="workers",
+                           default=1, type=int,
+                           help="number of workers [default: %default]")
     other_group.add_option("-o", "--output", dest="output",
                            default="simple://", help="output uri")
     other_group.add_option("-n", "--count", dest="count",
@@ -185,6 +192,40 @@ def print_topics(topic, coding, head=""):
     print(message)
 
 
+class Worker(Thread):
+    """docstring for Worker"""
+    def __init__(self, tasks):
+        super(Worker, self).__init__()
+        self.tasks = tasks
+        self.daemon = True
+        self.start()
+
+    def run(self):
+        while True:
+            func, arg, kwd = self.tasks.get()
+            try:
+                func(*arg, **kwd)
+            except Exception as err:
+                print(err)
+            finally:
+                self.tasks.task_done()
+
+
+class ThreadPool:
+    def __init__(self, num_threads):
+        self.tasks = Queue(num_threads)
+        for _ in range(num_threads):
+            Worker(self.tasks)
+
+    def add_task(self, func, *args, **kargs):
+        """Add a task to the queue"""
+        self.tasks.put((func, args, kargs))
+
+    def wait_completion(self):
+        """Wait for completion of all the tasks in the queue"""
+        self.tasks.join()
+
+
 def main(options, args, plugins):
     if options.cmd_list:
         options.output = "simple://"
@@ -214,13 +255,24 @@ def main(options, args, plugins):
                 plugin_writer.put_starred(post)
 
         elif options.scope_all:
-            for post in g.starred(options.count):
-                plugin_writer.put_starred(post)
+            num_workers = 1
+            if getattr(plugin_output, 'support_threads', False):
+                num_workers = options.workers
+            else:
+                message = "plugin {0} doesn't support threading: "
+                message += "option -w will be ignored"
+                print(message.format(plugin_output.plugin_type))
+
+            pool = ThreadPool(num_workers)
+            pool.add_task(map, lambda item: plugin_writer.put_starred(item),
+                          g.starred(options.count))
             for subscription in g.subscriptions:
                 subscription_url = subscription['id'].encode(
                     options.coding)[5:]
-                for post in g.posts(subscription_url, options.count):
-                    plugin_writer.put_all(subscription, post)
+                pool.add_task(map,
+                              lambda p: plugin_writer.put_all(subscription, p),
+                              g.posts(subscription_url, options.count))
+            pool.wait_completion()
 
 
 def entry_main():

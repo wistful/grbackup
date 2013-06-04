@@ -5,6 +5,7 @@ import pymongo
 
 
 plugin_type = "mongodb"
+support_threads = True
 description = """save items into MongoDB
 output scheme:   mongodb://[username:password@]hostN[:portN]]][/[db][?opts]]
 output examples: mongodb://localhost:27017
