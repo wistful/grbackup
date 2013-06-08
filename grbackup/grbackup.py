@@ -176,7 +176,7 @@ class Worker(Thread):
 
 class ThreadPool:
     def __init__(self, num_threads):
-        self.tasks = Queue(num_threads)
+        self.tasks = Queue()
         for _ in range(num_threads):
             Worker(self.tasks)
 
@@ -190,6 +190,8 @@ class ThreadPool:
 
 
 def main(options, args, plugins):
+    if options.verbose:
+        root_logger.setLevel(logging.DEBUG)
     if options.cmd_list:
         options.output = "simple://"
     plugin_output = get_active_plugin(options.output, plugins)
