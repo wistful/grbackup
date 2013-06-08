@@ -157,19 +157,3 @@ class GReader(object):
         return starred posts
         """
         return self.get_items(STARRED_URL)
-
-
-if __name__ == '__main__':
-    g = GReader('email', 'password')
-    print("Subscriptions:")
-    for subscription in g.subscriptions:
-        print(subscription['title'], subscription['id'][5:])
-    posts = []
-    subscription_url = 'http://planet.python.org/rss20.xml'
-    print("\nfeed: {url}\n\n".format(url=subscription_url))
-    for i, post in enumerate(g.posts(subscription_url)):
-        date = {'updated': post['updated'], 'published': post['published']}
-        url = post['alternate'][0]['href']
-        title = post.get('title', 'unknown')
-        print('{index}, {title}, {url}'.format(
-              index=i, date=date, title=title.encode('utf8'), url=url))
