@@ -49,8 +49,7 @@ class WriteRedis(object):
     def put_subscription(self, subscription):
         key = "{subscription}:{0}".format(subscription['id'],
                                           subscription=self.subs)
-        if not self.conn.exists(key):
-            self.conn.hmset(key, subscription)
+        self.conn.hmset(key, subscription)
 
     def put_all(self, subscription, topic):
         self.put_subscription(subscription)
@@ -59,13 +58,11 @@ class WriteRedis(object):
 
     def put_starred(self, topic):
         key = "{starred}:{0}".format(topic['id'], starred=self.starred)
-        if not self.conn.exists(key):
-            self.conn.hmset(key, topic)
+        self.conn.hmset(key, topic)
 
     def put_topic(self, subscription_url, topic):
         key = "{topic}:{0}".format(topic['id'], topic=self.topics)
-        if not self.conn.exists(key):
-            self.conn.hmset(key, topic)
+        self.conn.hmset(key, topic)
 
 
 class writer(object):
