@@ -1,7 +1,7 @@
 # grbackup readme
 grbackup is a Python library for backup Google Reader items from your profile.
 
-Licensed under the MIT license: [http://www.opensource.org/licenses/mit-license.php]()
+Licensed under the MIT license: [http://www.opensource.org/licenses/mit-license.php](http://www.opensource.org/licenses/mit-license.php)
 
 
 ## Usage
