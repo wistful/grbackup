@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE."""
 
-__version__ = '1.1'
+__version__ = '1.2'
 __author__ = 'wistful'
 __url__ = 'https://github.com/wistful/SGR'
 __license__ = 'The MIT License'
@@ -34,6 +34,7 @@ import urllib2
 
 from urllib import urlencode as url_encode
 from urllib import quote as url_quote
+from urllib import unquote as url_unquote
 
 import re
 import json
@@ -79,8 +80,7 @@ class GReader(object):
                 'Authorization': 'GoogleLogin auth={token}'.format(
                     token=token)}
         except (urllib2.HTTPError, urllib2.URLError) as exc:
-            logging.error("Login Failed.", extra={'err_code': exc.code,
-                                                  'err_message': exc.msg})
+            logging.error("Login Failed: %s", exc)
         except AttributeError:
             logging.error("Token Not Found in the response.",
                           extra={'response': resp})
@@ -108,8 +108,7 @@ class GReader(object):
                 resp = urllib2.urlopen(req).read()
                 self._subscriptions = json.loads(resp)['subscriptions']
             except (urllib2.HTTPError, urllib2.URLError) as exc:
-                logging.error("Failed getting subscriptions: %s %s",
-                              exc.code, exc.msg)
+                logging.error("Failed getting subscriptions: %s", exc)
             except KeyError:
                 logging.error("Subscriptions not found in the response.",
                               extra={'response': resp})
@@ -119,6 +118,7 @@ class GReader(object):
         """
         return return items from stream by url
         """
+        logging.info('start fetching url %s ', url_unquote(url))
         req_param = {'r': 'n', 'n': count, 'client': 'scroll'}
         continuation = None
         while True:
@@ -130,8 +130,7 @@ class GReader(object):
             try:
                 resp = urllib2.urlopen(req).read()
             except (urllib2.HTTPError, urllib2.URLError) as exc:
-                logging.error("Failed getting stream items: %s %s",
-                              exc.code, exc.msg)
+                logging.error("Failed getting stream items: %s", exc)
                 break
             feed_posts = json.loads(resp)
 
@@ -140,6 +139,7 @@ class GReader(object):
 
             continuation = feed_posts.get('continuation', None)
             if not continuation:
+                logging.info('end fetching url %s ', url_unquote(url))
                 break
 
     def posts(self, subscription_url, count=20):
