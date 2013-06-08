@@ -74,8 +74,10 @@ class WriteMongoDB(object):
         self.xcol = self.conn[self.db][collection_starred]
 
     def put_subscription(self, subscription):
-        if not self.scol.find_one({'id': subscription['id']}):
+        try:
             self.scol.insert(subscription)
+        except pymongo.errors.DuplicateKeyError:
+            pass
 
     def put_all(self, subscription, topic):
         self.put_subscription(subscription)
@@ -83,12 +85,16 @@ class WriteMongoDB(object):
         self.put_topic(subscription_url, topic)
 
     def put_starred(self, topic):
-        if not self.xcol.find_one({'id': topic['id']}):
+        try:
             self.xcol.insert(topic)
+        except pymongo.errors.DuplicateKeyError:
+            pass
 
     def put_topic(self, subscription_url, topic):
-        if not self.tcol.find_one({'id': topic['id']}):
+        try:
             self.tcol.insert(topic)
+        except pymongo.errors.DuplicateKeyError:
+            pass
 
 
 class writer(object):
