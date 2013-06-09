@@ -2,7 +2,10 @@
 # coding=utf-8
 from optparse import OptionGroup
 import pymongo
+import logging
 
+logger = logging.getLogger("mongo")
+logger.setLevel(logging.DEBUG)
 
 plugin_type = "mongodb"
 support_threads = True
@@ -72,6 +75,11 @@ class WriteMongoDB(object):
         self.scol = self.conn[self.db][collection_subsr]
         self.tcol = self.conn[self.db][collection_topics]
         self.xcol = self.conn[self.db][collection_starred]
+        self.create_index()
+
+    def create_index(self):
+        for collection in (self.scol, self.tcol, self.xcol):
+            collection.ensure_index("id", unique=True, dropDups=True)
 
     def put_subscription(self, subscription):
         try:

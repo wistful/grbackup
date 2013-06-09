@@ -156,6 +156,7 @@ def get_params(plugins):
 
 
 class Worker(Thread):
+
     """docstring for Worker"""
     def __init__(self, tasks):
         super(Worker, self).__init__()
@@ -165,16 +166,22 @@ class Worker(Thread):
 
     def run(self):
         while True:
-            func, arg, kwd = self.tasks.get()
+            func, arg, kwd, attempt = self.tasks.get()
             try:
                 func(*arg, **kwd)
             except Exception as err:
                 print(err)
+                if attempt < 3:
+                    print("Try again ...", attempt)
+                    self.tasks.put((func, arg, kwd, attempt + 1))
+                else:
+                    print("Failed after ", attempt, "attempts")
             finally:
                 self.tasks.task_done()
 
 
 class ThreadPool:
+
     def __init__(self, num_threads):
         self.tasks = Queue()
         for _ in range(num_threads):
@@ -182,11 +189,17 @@ class ThreadPool:
 
     def add_task(self, func, *args, **kargs):
         """Add a task to the queue"""
-        self.tasks.put((func, args, kargs))
+        self.tasks.put((func, args, kargs, 0))
 
     def wait_completion(self):
         """Wait for completion of all the tasks in the queue"""
         self.tasks.join()
+
+
+def fetch_subscription(g, writer, subscription, options):
+    subscription_url = subscription['id'].encode(options.coding)[5:]
+    for post in g.posts(subscription_url, options.count):
+        writer.put_all(subscription, post)
 
 
 def main(options, args, plugins):
@@ -233,11 +246,8 @@ def main(options, args, plugins):
             pool.add_task(map, lambda item: plugin_writer.put_starred(item),
                           g.starred(options.count))
             for subscription in g.subscriptions:
-                subscription_url = subscription['id'].encode(
-                    options.coding)[5:]
-                pool.add_task(map,
-                              lambda p: plugin_writer.put_all(subscription, p),
-                              g.posts(subscription_url, options.count))
+                pool.add_task(fetch_subscription,
+                              g, plugin_writer, subscription, options)
             pool.wait_completion()
 
 
