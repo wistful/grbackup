@@ -130,7 +130,7 @@ class GReader(object):
             try:
                 resp = urllib2.urlopen(req).read()
             except (urllib2.HTTPError, urllib2.URLError) as exc:
-                logging.error("Failed getting stream items: %s", exc)
+                logging.error("Failed getting stream (%s) items: %s", url_unquote(url), exc)
                 break
             feed_posts = json.loads(resp)
 
