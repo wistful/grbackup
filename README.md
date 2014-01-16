@@ -27,3 +27,7 @@ or
 
     $ easy_install grbackup
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/wistful/grbackup/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
