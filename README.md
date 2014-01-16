@@ -1,3 +1,5 @@
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/wistful/grbackup/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
 # grbackup readme
 grbackup is a Python library for backup Google Reader items from your profile.
 
@@ -26,8 +28,3 @@ grbackup on pypi at [http://pypi.python.org/pypi/grbackup/](http://pypi.python.o
 or 
 
     $ easy_install grbackup
-
-
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/wistful/grbackup/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
